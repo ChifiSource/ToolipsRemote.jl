@@ -65,11 +65,11 @@ function serve_remote(c::Connection)
     end
 end
 
-function connect(url::String, key::Integer)
+function connect(url::String, key::String)
     errors = Dict(1 => "No key provided!",
     2 => "Key is incorrect!")
     connecturl = url * "/remote/connect?key=$key"
-    response = get(connecturl)
+    response = GET(connecturl)
     if contains(keys(response), "error")
         errorn = response["error"]
         errorm = errors[errorn]

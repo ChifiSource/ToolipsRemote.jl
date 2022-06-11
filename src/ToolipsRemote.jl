@@ -10,7 +10,7 @@ function make_key()
 end
 
 mutable struct RemoteExtension <: ServerExtension
-    type::Symbol
+    type::Vector{Symbol}
     session_id::String
     f::Function
     password::String

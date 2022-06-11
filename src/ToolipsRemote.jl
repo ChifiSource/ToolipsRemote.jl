@@ -87,7 +87,7 @@ function serve_remote(c::Connection)
             else
                 valkey = make_key()
                 url = "remote/connect/$valkey"
-                write!(c, """{message : "connected, url : $url"}"""))
+                write!(c, """{message : "connected, url : $url"}""")
             end
         else
             write!(c, "{error : 2}"))

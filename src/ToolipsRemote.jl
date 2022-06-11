@@ -65,7 +65,7 @@ function serve_remote(c::Connection)
     end
     # Check to see if key i provided
     args = getargs(c)
-    if "key" in args
+    if "key" in keys(args)
         if args["key"] == re.password
             if re.validate
                 valkey = make_key()

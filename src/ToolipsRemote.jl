@@ -1,7 +1,7 @@
 module ToolipsRemote
 using Toolips
 using Random
-
+using Toolips: GET, POST
 import Toolips: ServerExtension
 
 function make_key()

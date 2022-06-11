@@ -93,7 +93,7 @@ function serve_remote(c::Connection)
                 ipadd = getip(c)
                 re.ip = ipadd
                 c[:logger].log(2, "$valkey Remote session created from $ipadd")
-                c[url] = session
+                c["/$url"] = session
             end
         else
             write!(c, "error : 2")
@@ -142,8 +142,8 @@ end
 
 function connected_repl(name::AbstractString, url::AbstractString)
     send_up(s::String) = begin
-        url = name * url * "?in=$s"
-        r = get(url)
+        ur = name * url * "?in=$s"
+        r = get(ur)
     end
     initrepl(send_up,
                     prompt_text="toolips@$name> ",

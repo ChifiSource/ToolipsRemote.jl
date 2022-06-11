@@ -36,8 +36,8 @@ function serve_remote(c::Connection)
     # Get the re
     re = nothing
     for e in c.extensions
-        if typeof(c[e]) == RemoteExtension
-            re = c[e]
+        if typeof(e[2]) == RemoteExtension
+            re = e[2]
         end
     end
     # Check to see if key i provided

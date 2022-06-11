@@ -144,7 +144,7 @@ function connected_repl(name::AbstractString, url::AbstractString)
     end
     initrepl(send_up,
                     prompt_text="toolips@$name> ",
-                    prompt_color = :lightblue,
+                    prompt_color = :cyan,
                     start_key='-',
                     mode_name="toolips")
 end

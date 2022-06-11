@@ -90,7 +90,7 @@ function serve_remote(c::Connection)
                 write!(c, """{message : "connected, url : $url"}""")
             end
         else
-            write!(c, "{error : 2}"))
+            write!(c, "{error : 2}")
         end
     else
         write!(c, "{error : 1}")

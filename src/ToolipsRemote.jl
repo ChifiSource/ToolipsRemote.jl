@@ -84,6 +84,9 @@ function serve_remote(c::Connection)
                 end
                 c["/remote/connect/validate"] = validate
             else
+                valkey = make_key()
+                c.valkey = valkey
+                url = "remote/connect/$valkey"
                 write!(c, """{message : connected, url : $url}""")
             end
         else
@@ -115,7 +118,7 @@ function connect(url::String, key::String)
     elseif :message in keys(response)
         if response[:message] == "connected"
             show("Connected!")
-            if "url" in keys(response)
+            if :url in keys(response)
                 show("URL recieved!")
                 show(response["url"])
             end

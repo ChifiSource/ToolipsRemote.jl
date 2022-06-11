@@ -128,7 +128,7 @@ function connect(url::String, key::String)
             show("Connected!")
             show("URL recieved!")
             show(response[:url])
-            connecturl = response[:url]
+            connecturl = string(response[:url])
             connected_repl(url, connecturl)
         elseif response[:message] == "key"
             show("Please enter the verification password logged to your server.")
@@ -138,7 +138,7 @@ function connect(url::String, key::String)
     end
 end
 
-function connected_repl(name::String, url::String)
+function connected_repl(name::AbstractString, url::AbstractString)
     send_up(s::String) = begin
         r = get("$url/?in=$s")
     end

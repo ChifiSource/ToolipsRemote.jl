@@ -74,7 +74,7 @@ function serve_remote(c::Connection)
                 valkey = make_key()
                 c.valkey = valkey
                 c[:logger].log(2, "key: $valkey")
-                write!(c, """{messsage : key}""")
+                write!(c, """messsage : key""")
                  validate(c::Connection) = begin
                      args = getargs(c)
                      if :key in keys(args)
@@ -89,16 +89,17 @@ function serve_remote(c::Connection)
             else
                 valkey = make_key()
                 url = "remote/connect/$valkey"
-                write!(c, """{message : "connected, url : $url"}""")
+                write!(c, "message : connected, url : $url")
                 ipadd = getip(c)
                 re.ip = ipadd
                 c[:logger].log(2, "$valkey Remote session created from $ipadd")
+                c[url] = session
             end
         else
-            write!(c, "{error : 2}")
+            write!(c, "error : 2")
         end
     else
-        write!(c, "{error : 1}")
+        write!(c, "error : 1")
     end
 end
 
@@ -118,16 +119,16 @@ function connect(url::String, key::String)
     connecturl = url * "remote/connect?key=$key"
     response = Toolips.get(connecturl)
     parse(Dict, response)
-    if "message" in keys(response)
+    if :message in keys(response)
         errorn = response["error"]
         errorm = errors[errorn]
         show("Encountered RemoteError: $errorn: $errorm")
-    elseif "message" in keys(response)
+    elseif :message in keys(response)
         if response[:message] == "connected"
             show("Connected!")
             show("URL recieved!")
-            show(response["url"])
-            connect = response["url"]
+            show(response[:url])
+            connecturl = response[:url]
             connected_repl(url, connecturl)
         elseif response[:message] == "key"
             show("Please enter the verification password logged to your server.")

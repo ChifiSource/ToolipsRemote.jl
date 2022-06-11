@@ -17,6 +17,7 @@ module ToolipsRemote
 using Toolips
 using Random
 using ParseNotEval
+using ReplMaker
 import Toolips: ServerExtension
 """
 
@@ -36,6 +37,7 @@ mutable struct RemoteExtension <: ServerExtension
     password::String
     validate::Bool
     valkey::String
+    ip::String
     function RemoteExtension(; password::String = "", validate::Bool = true)
         if password == ""
             password = make_key()
@@ -49,7 +51,7 @@ mutable struct RemoteExtension <: ServerExtension
             r["/remote/connect"] = serve_remote
             e[:logger].log(1, "ToolipsRemote is active !")
         end
-        new([:routing, :connection], "", f, password, validate, valkey)
+        new([:routing, :connection], "", f, password, validate, valkey, "")
     end
 end
 
@@ -88,6 +90,9 @@ function serve_remote(c::Connection)
                 valkey = make_key()
                 url = "remote/connect/$valkey"
                 write!(c, """{message : "connected, url : $url"}""")
+                ipadd = getip(c)
+                re.ip = ipadd
+                c[:logger].log(2, "$valkey Remote session created from $ipadd")
             end
         else
             write!(c, "{error : 2}")
@@ -101,6 +106,7 @@ end
 """
 function session(c::Connection)
     write!(c, "Hello world!")
+    write!(c, getip(c))
 end
 
 """
@@ -112,23 +118,34 @@ function connect(url::String, key::String)
     connecturl = url * "remote/connect?key=$key"
     response = Toolips.get(connecturl)
     parse(Dict, response)
-    if :error in keys(response)
+    if "message" in keys(response)
         errorn = response["error"]
         errorm = errors[errorn]
         show("Encountered RemoteError: $errorn: $errorm")
-    elseif :message in keys(response)
+    elseif "message" in keys(response)
         if response[:message] == "connected"
             show("Connected!")
-            if :url in keys(response)
-                show("URL recieved!")
-                show(response["url"])
-            end
+            show("URL recieved!")
+            show(response["url"])
+            connect = response["url"]
+            connected_repl(url, connecturl)
         elseif response[:message] == "key"
-            show("You must enter a key.")
+            show("Please enter the verification password logged to your server.")
         end
     else
         throw("Could not get valid return from this request.")
     end
+end
+
+function connected_repl(name::String, url::String)
+    send_up(s::String) = begin
+        r = get("$url/?in=$s")
+    end
+    initrepl(send_up,
+                    prompt_text="toolips@$name> ",
+                    prompt_color = :lightblue,
+                    start_key='-',
+                    mode_name="toolips")
 end
 
 export RemoteExtension, connect

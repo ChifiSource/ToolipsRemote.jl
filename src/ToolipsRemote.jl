@@ -16,6 +16,7 @@ module ToolipsRemote
 
 using Toolips
 using Random
+using ParseNotEval
 import Toolips: ServerExtension
 """
 
@@ -71,13 +72,13 @@ function serve_remote(c::Connection)
                 valkey = make_key()
                 c.valkey = valkey
                 c[:logger].log(2, "key: $valkey")
-                write!(c, """{messsage = key}""")
+                write!(c, """{messsage : key}""")
                  validate(c::Connection) = begin
                      args = getargs(c)
                      if :key in keys(args)
                          if args[:key] == re.valkey
                              url = "remote/connect/$valkey"
-                             write!(c, """{url: $url}""")
+                             write!(c, Dict(url => "$url"))
                              c[url] = session
                          end
                      end
@@ -86,13 +87,13 @@ function serve_remote(c::Connection)
             else
                 valkey = make_key()
                 url = "remote/connect/$valkey"
-                write!(c, """{message : connected, url : $url}""")
+                write!(c, """{message : "connected, url : $url"}"""))
             end
         else
-            write!(c, """{error : 2}""")
+            write!(c, "{error : 2}"))
         end
     else
-        write!(c, """{error : 1}""")
+        write!(c, "{error : 1}")
     end
 end
 
@@ -110,6 +111,7 @@ function connect(url::String, key::String)
     2 => "Key is incorrect!")
     connecturl = url * "/remote/connect?key=$key"
     response = Toolips.get(connecturl)
+    parse(Dict, response)
     if :error in keys(response)
         errorn = response["error"]
         errorm = errors[errorn]

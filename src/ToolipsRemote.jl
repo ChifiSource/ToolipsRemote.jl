@@ -1,5 +1,5 @@
 """
-Created in December, 2021 by
+Created in June, 2022 by
 [chifi - an open source software dynasty.](https://github.com/orgs/ChifiSource)
 by team
 [toolips](https://github.com/orgs/ChifiSource/teams/toolips)
@@ -38,7 +38,8 @@ mutable struct RemoteExtension <: ServerExtension
     validate::Bool
     valkey::String
     ip::String
-    function RemoteExtension(; password::String = "", validate::Bool = true)
+    remote::Function
+    function RemoteExtension(remote::Function; password::String = "", validate::Bool = true)
         if password == ""
             password = make_key()
         end
@@ -51,7 +52,7 @@ mutable struct RemoteExtension <: ServerExtension
             r["/remote/connect"] = serve_remote
             e[:logger].log(1, "ToolipsRemote is active !")
         end
-        new([:routing, :connection], "", f, password, validate, valkey, "")
+        new([:routing, :connection], "", f, password, validate, valkey, "", remote)
     end
 end
 
@@ -81,7 +82,7 @@ function serve_remote(c::Connection)
                          if args[:key] == re.valkey
                              url = "remote/connect/$valkey"
                              write!(c, Dict(url => "$url"))
-                             c[url] = session
+                             c[url] = re.remote
                          end
                      end
                 end

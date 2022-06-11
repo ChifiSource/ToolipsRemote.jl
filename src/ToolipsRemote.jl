@@ -74,7 +74,7 @@ function serve_remote(c::Connection)
                 write!("""{messsage = key}""")
                  validate(c::Connection) = begin
                      args = getargs(c)
-                     if "key" in args
+                     if "key" in keys(args)
                          if args["key"] == re.valkey
                              url = "remote/connect/$valkey"
                              write!(c, """{url: $url}""")

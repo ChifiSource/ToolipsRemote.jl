@@ -21,7 +21,7 @@ mutable struct RemoteExtension <: ServerExtension
         end
         valkey = ""
         f(r::Dict, e::Dict) = begin
-            if contains(keys(e), :logger)
+            if :logger in keys(e)
                 e[:logger].log(2, "Remote Key: $password")
             end
 
@@ -42,8 +42,8 @@ function serve_remote(c::Connection)
     end
     # Check to see if key i provided
     args = getargs(c)
-    if contains(args, :key)
-        if args[:key] == re.password
+    if "key" in args
+        if args["key"] == re.password
             if re.validate
                 valkey = make_key()
                 c.valkey = valkey
@@ -69,11 +69,11 @@ function connect(url::String, key::String)
     2 => "Key is incorrect!")
     connecturl = url * "/remote/connect?key=$key"
     response = Toolips.get(connecturl)
-    if contains(keys(response), "error")
+    if "error" in keys(response)
         errorn = response["error"]
         errorm = errors[errorn]
         show("Encountered RemoteError: $errorn: $errorm")
-    elseif contains(keys(response), "message")
+    elseif "message" in keys(response)
         if response["message"] == "connected"
             show("Connected!")
         elseif response["message"] == "key"

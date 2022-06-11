@@ -65,8 +65,8 @@ function serve_remote(c::Connection)
     end
     # Check to see if key i provided
     args = getargs(c)
-    if "key" in keys(args)
-        if args["key"] == re.password
+    if :key in keys(args)
+        if args[:key] == re.password
             if re.validate
                 valkey = make_key()
                 c.valkey = valkey
@@ -74,8 +74,8 @@ function serve_remote(c::Connection)
                 write!("""{messsage = key}""")
                  validate(c::Connection) = begin
                      args = getargs(c)
-                     if "key" in keys(args)
-                         if args["key"] == re.valkey
+                     if :key in keys(args)
+                         if args[:key] == re.valkey
                              url = "remote/connect/$valkey"
                              write!(c, """{url: $url}""")
                              c[url] = session
@@ -108,18 +108,18 @@ function connect(url::String, key::String)
     2 => "Key is incorrect!")
     connecturl = url * "/remote/connect?key=$key"
     response = Toolips.get(connecturl)
-    if "error" in keys(response)
+    if :error in keys(response)
         errorn = response["error"]
         errorm = errors[errorn]
         show("Encountered RemoteError: $errorn: $errorm")
-    elseif "message" in keys(response)
-        if response["message"] == "connected"
+    elseif :message in keys(response)
+        if response[:message] == "connected"
             show("Connected!")
             if "url" in keys(response)
                 show("URL recieved!")
                 show(response["url"])
             end
-        elseif response["message"] == "key"
+        elseif response[:message] == "key"
             show("You must enter a key.")
         end
     else

@@ -109,7 +109,7 @@ function session(c::Connection)
     input = getarg(c, :in)
     exp = Meta.parse(input)
     ret = eval(exp)
-    write!(c, ret)
+    write!(c, string(ret))
 end
 
 """

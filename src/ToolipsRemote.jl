@@ -106,8 +106,10 @@ end
 """
 """
 function session(c::Connection)
-    write!(c, "Hello world!")
-    write!(c, getip(c))
+    input = getarg(c, :in)
+    exp = Meta.parse(input)
+    ret = eval(exp)
+    write!(c, ret)
 end
 
 """
@@ -140,7 +142,7 @@ end
 
 function connected_repl(name::AbstractString, url::AbstractString)
     send_up(s::String) = begin
-        r = get("$url/?in=$s")
+        r = get("$name$url/?in=$s")
     end
     initrepl(send_up,
                     prompt_text="toolips@$name> ",

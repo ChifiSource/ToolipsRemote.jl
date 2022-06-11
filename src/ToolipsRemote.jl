@@ -119,8 +119,8 @@ function connect(url::String, key::String)
     connecturl = url * "remote/connect?key=$key"
     response = Toolips.get(connecturl)
     response = parse(Dict, response)
-    if :message in keys(response)
-        errorn = response["error"]
+    if :error in keys(response)
+        errorn = response[:error]
         errorm = errors[errorn]
         show("Encountered RemoteError: $errorn: $errorm")
     elseif :message in keys(response)

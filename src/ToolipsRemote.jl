@@ -71,7 +71,7 @@ function serve_remote(c::Connection)
                 valkey = make_key()
                 c.valkey = valkey
                 c[:logger].log(2, "key: $valkey")
-                write!("""{messsage = key}""")
+                write!(c, """{messsage = key}""")
                  validate(c::Connection) = begin
                      args = getargs(c)
                      if :key in keys(args)
@@ -85,7 +85,6 @@ function serve_remote(c::Connection)
                 c["/remote/connect/validate"] = validate
             else
                 valkey = make_key()
-                c.valkey = valkey
                 url = "remote/connect/$valkey"
                 write!(c, """{message : connected, url : $url}""")
             end

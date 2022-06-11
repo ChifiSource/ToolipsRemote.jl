@@ -142,7 +142,8 @@ end
 
 function connected_repl(name::AbstractString, url::AbstractString)
     send_up(s::String) = begin
-        r = get("$name$url/?in=$s")
+        url = name * url * "?in=$s"
+        r = get(url)
     end
     initrepl(send_up,
                     prompt_text="toolips@$name> ",

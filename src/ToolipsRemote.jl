@@ -1,7 +1,6 @@
 module ToolipsRemote
 using Toolips
 using Random
-using Toolips: GET, POST
 import Toolips: ServerExtension
 
 function make_key()
@@ -69,7 +68,7 @@ function connect(url::String, key::String)
     errors = Dict(1 => "No key provided!",
     2 => "Key is incorrect!")
     connecturl = url * "/remote/connect?key=$key"
-    response = GET(connecturl)
+    response = Toolips.get(connecturl)
     if contains(keys(response), "error")
         errorn = response["error"]
         errorm = errors[errorn]

@@ -109,7 +109,7 @@ end
 function connect(url::String, key::String)
     errors = Dict(1 => "No key provided!",
     2 => "Key is incorrect!")
-    connecturl = url * "/remote/connect?key=$key"
+    connecturl = url * "remote/connect?key=$key"
     response = Toolips.get(connecturl)
     parse(Dict, response)
     if :error in keys(response)

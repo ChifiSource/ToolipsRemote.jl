@@ -7,8 +7,8 @@ This software is MIT-licensed.
 ### ToolipsRemote
 **Extension for:**
 - [Toolips](https://github.com/ChifiSource/Toolips.jl) \
-This module provides the server extension RemoteExtension, as well as an
-API to interact with it.
+This module provides the server extension RemoteExtension, an extension
+that allows one to remotely call server commands from another Julia terminal.
 ##### Module Composition
 - [**ToolipsRemote**](https://github.com/ChifiSource/ToolipsRemote.jl)
 """
@@ -45,12 +45,12 @@ mutable struct RemoteExtension <: ServerExtension
         end
         valkey = ""
         f(r::Dict, e::Dict) = begin
-            if :logger in keys(e)
-                e[:logger].log(2, "Remote Key: $password")
+            if has_extension(c, Logger)
+                e[Logger].log(2, "Remote Key: $password")
             end
 
             r["/remote/connect"] = serve_remote
-            e[:logger].log(1, "ToolipsRemote is active !")
+            e[Logger].log(1, "ToolipsRemote is active !")
         end
         new([:routing, :connection], "", f, password, validate, valkey, "", remote)
     end
@@ -61,12 +61,7 @@ end
 """
 function serve_remote(c::Connection)
     # Get the re
-    re = nothing
-    for e in c.extensions
-        if typeof(e[2]) == RemoteExtension
-            re = e[2]
-        end
-    end
+    re = e[RemoteExtension]
     # Check to see if key i provided
     args = getargs(c)
     if :key in keys(args)
@@ -74,7 +69,7 @@ function serve_remote(c::Connection)
             if re.validate
                 valkey = make_key()
                 c.valkey = valkey
-                c[:logger].log(2, "key: $valkey")
+                c[Logger].log(2, "key: $valkey")
                 write!(c, """messsage : key""")
                  validate(c::Connection) = begin
                      args = getargs(c)
@@ -93,7 +88,7 @@ function serve_remote(c::Connection)
                 write!(c, "message : connected, url : $url")
                 ipadd = getip(c)
                 re.ip = ipadd
-                c[:logger].log(2, "$valkey Remote session created from $ipadd")
+                c[Logger].log(2, "$valkey Remote session created from $ipadd")
                 c["/$url"] = session
             end
         else
@@ -111,6 +106,12 @@ function session(c::Connection)
     exp = Meta.parse(input)
     ret = eval(exp)
     write!(c, string(ret))
+    #==
+    No, this is not done.. What I plan to do is basically make a macro evaluator
+    It will be loaded into a dictionary, where basically we can decide what to do
+    with incoming text, and of course just simply added to the connection via our
+    extension! Pretty cool, right?
+    ==#
 end
 
 """

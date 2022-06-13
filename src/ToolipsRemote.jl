@@ -45,7 +45,7 @@ mutable struct RemoteExtension <: ServerExtension
         end
         valkey = ""
         f(r::Dict, e::Dict) = begin
-            if has_extension(c, Logger)
+            if has_extension(e, Logger)
                 e[Logger].log(2, "Remote Key: $password")
             end
 
@@ -61,14 +61,14 @@ end
 """
 function serve_remote(c::Connection)
     # Get the re
-    re = e[RemoteExtension]
+    re = c.extensions[RemoteExtension]
     # Check to see if key i provided
     args = getargs(c)
     if :key in keys(args)
         if args[:key] == re.password
             if re.validate
                 valkey = make_key()
-                c.valkey = valkey
+                re.valkey = valkey
                 c[Logger].log(2, "key: $valkey")
                 write!(c, """messsage : key""")
                  validate(c::Connection) = begin

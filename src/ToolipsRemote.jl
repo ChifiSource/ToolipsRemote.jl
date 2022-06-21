@@ -146,8 +146,11 @@ function evaluator(c::Connection, m::String)
     write!(c, string(eval(Meta.parse(m))))
 end
 
-function controller(c::Connection, m::String)
-
+function controller(c::Connection, m::String, commands = "?" => helpme,
+                    "log" => log)
+    args = [string(arg) for arg in split(m, " ")]
+    cmd = args[1]
+    write!(c, commands[cmd](args))
 end
 
 function helpme(args::Vector{String})

@@ -21,8 +21,8 @@ using ParseNotEval
 using ReplMaker
 using Markdown
 import Toolips: ServerExtension
-"""
 
+"""
 """
 struct Hash
     f::Function
@@ -61,7 +61,7 @@ mutable struct Remote <: ServerExtension
                 end
             end
         end
-        f(c::Connection) = remotefunction(getpost(c))
+        f(c::Connection, m::String) = remotefunction(c, m)
         new([:routing, :connection], f, logins, users)::Remote
     end
 end
@@ -74,9 +74,10 @@ function serve_remote(c::Connection)
     keybeg = findall(":SESSIONKEY:", message)
     if length(keybeg) == 1
         key = message[keybeg[1][2] + 1:length(message)]
-        input = message[1:keybeg[1][1] - 1]
+        # cut out the session key if provided.
+        message = message[1:keybeg[1][1] - 1]
         if key in [v.f() for v in values(c[:Remote].users)]
-            c[:Remote].f(c)
+            c[:Remote].f(c, message)
         end
     else
         if message == "login"
@@ -113,6 +114,7 @@ function connect(url::String)
     namekey = post("$url/remote/connect", "$u:$(string(pwd.data))")
     Base.shred!(pwd)
     if contains(namekey, ":")
+        display(md_str("#### connection successful!"))
         namekey = split(namekey, ":")
         name, key = string(namekey[1]), string(namekey[2])
         connected_repl(name, url, key)
@@ -128,20 +130,61 @@ function connected_repl(name::AbstractString, url::String, key::String)
     end
     initrepl(send_up,
                     prompt_text="$url 🔗 $name> ",
-                    prompt_color = :lightblue,
+                    prompt_color = :cyan,
                     start_key=']',
                     mode_name="remote")
 end
 
 """
 """
-function session(c::String)
-
+function session(c::Connection, m::String; commands = Dict("?" => help,
+                "log" => log))
+    inputs = split(m, " ")
+    command = inputs[1]
+    commands[command](c, (inputs[2:length(inputs)]))
 end
 
+function help(c::Connection, args::AbstractString ...)
+    if length(args) > 1
+        write!(c, "### Not a correct number of arguments!\n")
+        write!(c, "You can send ? to find out more information.")
+    elseif length(args) == 0
+        write(c, """### ?
+        The ? command allows one to explore the various capabilities
+        of the toolips session. Inside of this REPL, commands are issued with
+        their arguments followed by spaces. The ? application, as an example
+        takes one argument. The one argument is the
+        ```
 
+        ```
+        ##### Command
+        - **Command** **arg1::Type (Required)** arg2::Type arg3::Type
+        - **?** command::String
+        - **log** **message::String** level::Int64
+        - More commands coming soon.
+        """)
+    elseif length(args) == 1
 
+    end
+end
 
+function log(c::Connection, args::AbstractString ...)
+    if length(args) > 2
+        write!(c, "### Not a correct number of arguments!\n")
+        write!(c, "You can send ? log to find out more information.")
+        return
+    end
+    if length(args) == 2
+        level = parse(Int64, string(args[2]))
+        c[:Logger].log(level, string(args[1]))
+    else
+        c[:logger].log(string(args[1]))
+    end
+end
+
+function reroute(c::Connection, args::AbstractString ...)
+
+end
 
 export Remote, connect
 end # module

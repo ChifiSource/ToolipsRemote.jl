@@ -46,9 +46,7 @@ mutable struct Remote <: ServerExtension
     motd::String
     function Remote(remotefunction::Function = session,
         usernames::Vector{String} = ["root"];
-        motd::String = """
-        ### login to toolips remote session
-        -----------------------------------\n
+        motd::String = """### login to toolips remote session
         """
         )
         logins::Dict{String, Hash} = Dict([n => Hash() for n in usernames])
@@ -79,7 +77,7 @@ function serve_remote(c::Connection)
         key = message[keybeg[1][2] + 1:length(message)]
         # cut out the session key if provided.
         message = message[1:keybeg[1][1] - 1]
-        if key in [v.f() for v in values(c[:Remote].users)]
+        if key in [v.f() for v in keys(c[:Remote].users)]
             c[:Remote].f(c, message)
         end
     else

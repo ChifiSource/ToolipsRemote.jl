@@ -45,7 +45,7 @@ mutable struct Remote <: ServerExtension
     logins::Dict{String,Hash}
     users::Dict
     motd::String
-    function Remote(remotefunction::Function = session,
+    function Remote(remotefunction::Function = evaluator,
         usernames::Vector{String} = ["root"];
         motd::String = """### login to toolips remote session
         """
@@ -79,6 +79,8 @@ function serve_remote(c::Connection)
         message = message[1:keybeg[1][1] - 1]
         if key in [v.f() for v in keys(c[:Remote].users)]
             c[:Remote].remotefunction(c, message)
+        else
+            write!(c, "Key invalidated.")
         end
     else
         if message == "login"
@@ -138,14 +140,12 @@ end
 
 """
 """
-function session(c::Connection, m::String; commands = Dict("?" => helpme,
-                "log" => logme))
-    c[:Logger].log("session served")
-    inputs = split(m, " ")
-    command = string(inputs[1])
-    c[:Logger].log("$command")
-    show([inputs])
-    write!(c, commands[command]([string(input) for input in inputs]))
+function evaluator(c::Connection, m::String)
+    write!(c, string(eval(Meta.parse(m))))
+end
+
+function controller(c::Connection, m::String)
+
 end
 
 function helpme(args::Vector{String})

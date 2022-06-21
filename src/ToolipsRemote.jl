@@ -148,7 +148,7 @@ end
 
 function controller(c::Connection, m::String,
                 commands::Dict{String, Function} = Dict("?" => helpme,
-                "log" => log)
+                "log" => log))
     args = [string(arg) for arg in split(m, " ")]
     cmd = args[1]
     write!(c, commands[cmd](args))

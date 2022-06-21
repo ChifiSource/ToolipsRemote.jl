@@ -113,7 +113,7 @@ end
 """
 function connect(url::String)
     message = post("$url/remote/connect", "login")
-    display(md"$message")
+    display(Markdown.parse(message))
     print("user: "); u = readline()
     pwd = Base.getpass("password for $u")
     namekey = post("$url/remote/connect", "$u:$(string(pwd.data))")
@@ -131,7 +131,7 @@ end
 function connected_repl(name::AbstractString, url::String, key::String)
     send_up(s::String) = begin
         r = post("$url/remote/connect", s * ":SESSIONKEY:$key")
-        display(md"$r")
+        display(Markdown.parse(r))
     end
     initrepl(send_up,
                     prompt_text="$url 🔗 $name> ",
@@ -155,11 +155,11 @@ function controller(c::Connection, m::String,
 end
 
 function helpme(args::Vector{String})
-    if length(args) > 1
+    if length(args) > 2
         return("""### Not a correct number of arguments!
         Try ? for more information.
         """)
-    elseif length(args) == 0
+    elseif length(args) == 1
         return("""### ?
         The ? command allows one to explore the various capabilities
         of the toolips session. Inside of this REPL, commands are issued with

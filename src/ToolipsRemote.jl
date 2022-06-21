@@ -60,7 +60,7 @@ mutable struct Remote <: ServerExtension
                 for user in logins
                     login = user[1]
                     pwrd = user[2].f()
-                    e[:Logger].log(2, "  |Remote Key for $login: $password")
+                    e[:Logger].log(2, "  |Remote Key for $login: $pwrd")
                 end
             end
         end

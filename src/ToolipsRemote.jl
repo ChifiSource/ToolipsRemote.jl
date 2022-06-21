@@ -65,7 +65,7 @@ mutable struct Remote <: ServerExtension
             end
         end
         f(c::Connection, m::String) = remotefunction(c, m)
-        new([:routing, :connection], f, logins, users)::Remote
+        new([:routing, :connection], f, logins, users, motd)::Remote
     end
 end
 getindex(r::Remote, s::String) = r.users

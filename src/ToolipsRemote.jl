@@ -141,7 +141,7 @@ end
 function session(c::Connection, m::String; commands = Dict("?" => help,
                 "log" => log))
     inputs = split(m, " ")
-    command = inputs[1]
+    command = string(inputs[1])
     commands[command](c, (inputs[2:length(inputs)]))
 end
 
@@ -150,7 +150,7 @@ function help(c::Connection, args::AbstractString ...)
         write!(c, "### Not a correct number of arguments!\n")
         write!(c, "You can send ? to find out more information.")
     elseif length(args) == 0
-        write(c, """### ?
+        write!(c, """### ?
         The ? command allows one to explore the various capabilities
         of the toolips session. Inside of this REPL, commands are issued with
         their arguments followed by spaces. The ? application, as an example

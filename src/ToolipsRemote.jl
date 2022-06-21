@@ -111,18 +111,18 @@ end
 """
 function connect(url::String)
     message = post("$url/remote/connect", "login")
-    display(md_str(message))
+    display(@md_str(message))
     print("user: "); u = readline()
     pwd = Base.getpass("password for $u")
     namekey = post("$url/remote/connect", "$u:$(string(pwd.data))")
     Base.shred!(pwd)
     if contains(namekey, ":")
-        display(md_str("#### connection successful!"))
+        display(@md_str("#### connection successful!"))
         namekey = split(namekey, ":")
         name, key = string(namekey[1]), string(namekey[2])
         connected_repl(name, url, key)
     else
-        display(md_str(namekey))
+        display(@md_str(namekey))
     end
 end
 

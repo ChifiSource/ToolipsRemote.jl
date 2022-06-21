@@ -140,8 +140,11 @@ end
 """
 function session(c::Connection, m::String; commands = Dict("?" => help,
                 "log" => log))
+    c[:Logger].log("session served")
     inputs = split(m, " ")
     command = string(inputs[1])
+    c[:Logger].log("$command")
+    show([inputs])
     commands[command](c, [string(input) for input in inputs])
 end
 

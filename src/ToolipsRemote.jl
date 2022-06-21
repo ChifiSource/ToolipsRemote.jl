@@ -132,7 +132,7 @@ function connected_repl(name::AbstractString, url::String, key::String)
     initrepl(send_up,
                     prompt_text="$url 🔗 $name> ",
                     prompt_color = :cyan,
-                    start_key=']',
+                    start_key='[',
                     mode_name="remote")
 end
 

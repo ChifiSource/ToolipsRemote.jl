@@ -111,25 +111,25 @@ end
 """
 function connect(url::String)
     message = post("$url/remote/connect", "login")
-    display(@md_str(message))
+    display(md"$message")
     print("user: "); u = readline()
     pwd = Base.getpass("password for $u")
     namekey = post("$url/remote/connect", "$u:$(string(pwd.data))")
     Base.shred!(pwd)
     if contains(namekey, ":")
-        display(@md_str("#### connection successful!"))
+        display(md"#### connection successful!")
         namekey = split(namekey, ":")
         name, key = string(namekey[1]), string(namekey[2])
         connected_repl(name, url, key)
     else
-        display(@md_str(namekey))
+        display(md"$namekey"))
     end
 end
 
 function connected_repl(name::AbstractString, url::String, key::String)
     send_up(s::String) = begin
         r = post("$url/remote/connect", s * ":SESSIONKEY:$key")
-        display(md"r")
+        display(md"$r")
     end
     initrepl(send_up,
                     prompt_text="$url 🔗 $name> ",

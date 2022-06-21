@@ -138,22 +138,23 @@ end
 
 """
 """
-function session(c::Connection, m::String; commands = Dict("?" => help,
-                "log" => log))
+function session(c::Connection, m::String; commands = Dict("?" => helpme,
+                "log" => logme))
     c[:Logger].log("session served")
     inputs = split(m, " ")
     command = string(inputs[1])
     c[:Logger].log("$command")
     show([inputs])
-    commands[command](c, [string(input) for input in inputs])
+    write!(c, commands[command]([string(input) for input in inputs]))
 end
 
-function help(c::Connection, args::Vector{String})
+function helpme(args::Vector{String})
     if length(args) > 1
-        write!(c, "### Not a correct number of arguments!\n")
-        write!(c, "You can send ? to find out more information.")
+        return("""### Not a correct number of arguments!
+        Try ? for more information.
+        """)
     elseif length(args) == 0
-        write!(c, """### ?
+        return("""### ?
         The ? command allows one to explore the various capabilities
         of the toolips session. Inside of this REPL, commands are issued with
         their arguments followed by spaces. The ? application, as an example
@@ -167,7 +168,8 @@ function help(c::Connection, args::Vector{String})
         - **log** **message::String** level::Int64
         - More commands coming soon.
         """)
-    else length(args) == 1
+    else
+        return("### still at work")
 
     end
 end

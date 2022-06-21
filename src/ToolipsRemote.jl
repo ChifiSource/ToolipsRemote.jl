@@ -40,6 +40,7 @@ end
 """
 mutable struct Remote <: ServerExtension
     type::Vector{Symbol}
+    remotefunction::Function
     f::Function
     logins::Dict{String,Hash}
     users::Dict
@@ -62,8 +63,7 @@ mutable struct Remote <: ServerExtension
                 end
             end
         end
-        f(c::Connection, m::String) = remotefunction(c, m)
-        new([:routing, :connection], f, logins, users, motd)::Remote
+        new([:routing, :connection], remotefunction, f, logins, users, motd)::Remote
     end
 end
 getindex(r::Remote, s::String) = r.users
@@ -78,7 +78,7 @@ function serve_remote(c::Connection)
         # cut out the session key if provided.
         message = message[1:keybeg[1][1] - 1]
         if key in [v.f() for v in keys(c[:Remote].users)]
-            c[:Remote].f(c, message)
+            c[:Remote].remotefunction(c, message)
         end
     else
         if message == "login"
@@ -142,10 +142,10 @@ function session(c::Connection, m::String; commands = Dict("?" => help,
                 "log" => log))
     inputs = split(m, " ")
     command = string(inputs[1])
-    commands[command](c, (inputs[2:length(inputs)]))
+    commands[command](c, [string(input) for input in inputs])
 end
 
-function help(c::Connection, args::AbstractString ...)
+function help(c::Connection, args::Vector{String})
     if length(args) > 1
         write!(c, "### Not a correct number of arguments!\n")
         write!(c, "You can send ? to find out more information.")
@@ -164,7 +164,7 @@ function help(c::Connection, args::AbstractString ...)
         - **log** **message::String** level::Int64
         - More commands coming soon.
         """)
-    elseif length(args) == 1
+    else length(args) == 1
 
     end
 end

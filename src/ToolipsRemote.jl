@@ -47,8 +47,7 @@ mutable struct Remote <: ServerExtension
     motd::String
     function Remote(remotefunction::Function = evaluator,
         usernames::Vector{String} = ["root"];
-        motd::String = """### login to toolips remote session
-        """
+        motd::String = """### login to toolips remote session"""
         )
         logins::Dict{String, Hash} = Dict([n => Hash() for n in usernames])
         users::Dict = Dict()
@@ -59,11 +58,12 @@ mutable struct Remote <: ServerExtension
                 for user in logins
                     login = user[1]
                     pwrd = user[2].f()
-                    e[:Logger].log(2, "  |Remote Key for $login: $pwrd")
+                    e[:Logger].log(2, "|Remote Key for $login: $pwrd")
                 end
             end
         end
-        new([:routing, :connection], remotefunction, f, logins, users, motd)::Remote
+        new([:routing, :connection], remotefunction, f, logins, users,
+            motd)::Remote
     end
 end
 getindex(r::Remote, s::String) = r.users
@@ -74,13 +74,15 @@ function serve_remote(c::Connection)
     message = getpost(c)
     keybeg = findall(":SESSIONKEY:", message)
     if length(keybeg) == 1
-        key = message[keybeg[1][2] + 1:length(message)]
-        # cut out the session key if provided.
-        message = message[1:keybeg[1][1] - 1]
+            keystart = keybeg[1][2] + 11
+            key = message[keystart:length(message)]
+            # cut out the session key if provided.
+            message = message[1:keybeg[1][1] - 1]
+            print(message)
         if key in [v.f() for v in keys(c[:Remote].users)]
             c[:Remote].remotefunction(c, message)
         else
-            write!(c, "Key invalidated.")
+            write!(c, "Key invalid.")
         end
     else
         if message == "login"

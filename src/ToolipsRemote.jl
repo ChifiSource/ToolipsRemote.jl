@@ -28,7 +28,10 @@ struct Hash
     f::Function
     function Hash()
         seed = rand(1:100000000)
-        new((seed) -> Random.seed!(seed); randstring(32);)
+        f() = begin
+            Random.seed!(seed); randstring(32)
+        end
+        new(f)
     end
 end
 
@@ -43,7 +46,7 @@ mutable struct Remote <: ServerExtension
     motd::String
     function Remote(remotefunction::Function = session,
         usernames::Vector{String} = ["root"];
-        motd = """
+        motd::String = """
         ### login to toolips remote session
         -----------------------------------\n
         """

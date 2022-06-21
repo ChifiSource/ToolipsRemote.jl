@@ -122,7 +122,7 @@ function connect(url::String)
         name, key = string(namekey[1]), string(namekey[2])
         connected_repl(name, url, key)
     else
-        display(md"$namekey"))
+        display(md"$namekey")
     end
 end
 

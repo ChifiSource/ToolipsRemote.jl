@@ -53,8 +53,6 @@ struct Hash
     end
     function Hash(s::String)
         seed = rand(1:100000000)
-        replacechars = randstring(32)
-        d = Dict([char => ])
         f() = begin
 
         end

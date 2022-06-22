@@ -23,26 +23,85 @@ using Markdown
 import Toolips: ServerExtension
 
 """
+### Hash
+- f::Function \
+Creates an anonymous hashing function for a string of length(n). Can be
+    indexed with nothing to retrieve Hash.
+##### example
+```
+# 64-character hash
+h = Hash(64)          #    vv getindex(::Hash)
+buffer = Base.SecretBuffer(hash[])
+if String(buffer.data) == "Password"
+```
+------------------
+##### field info
+- f::Function - The f function is used to return the Hash's value.
+------------------
+##### constructors
+- Hash(n::Integer = 32)
+- Hash(s::String)
 """
 struct Hash
     f::Function
-    function Hash()
+    function Hash(n::Integer = 32)
         seed = rand(1:100000000)
         f() = begin
-            Random.seed!(seed); randstring(32)
+            Random.seed!(seed); randstring(n)
         end
         new(f)
+    end
+    function Hash(s::String)
+        seed = rand(1:100000000)
+        replacechars = randstring(32)
+        d = Dict([char => ])
+        f() = begin
+
+        end
+        f(s::String) = begin
+
+        end
     end
 end
 
 """
+**Session**
+### getindex(h::Hash) -> ::String
+------------------
+Retrieves the value of the hashed data.
+#### example
+```
+pwd = h[]
+```
+"""
+getindex(h::Hash) = h.f()
+
+"""
+### Remote <: Toolips.ServerExtension
+- type::Vector{Symbol}
+- remotefunction::Function
+- f::Function
+- logins::Dict{String, Hash}
+- users::Dict
+- motd::String \
+The remote extension makes it possible to connect to your server from
+another Julia REPL.
+##### example
+```
+
+```
+------------------
+##### field info
+
+------------------
+##### constructors
 
 """
 mutable struct Remote <: ServerExtension
     type::Vector{Symbol}
     remotefunction::Function
     f::Function
-    logins::Dict{String,Hash}
+    logins::Dict{String, Hash}
     users::Dict
     motd::String
     function Remote(remotefunction::Function = evaluator,
@@ -134,7 +193,7 @@ function connected_repl(name::AbstractString, url::String, key::String)
         display(Markdown.parse(r))
     end
     initrepl(send_up,
-                    prompt_text="$url 🔗 $name> ",
+                    prompt_text="🔗 $name> ",
                     prompt_color = :cyan,
                     start_key='[',
                     mode_name="remote")
@@ -175,8 +234,7 @@ function helpme(args::Vector{String})
         - More commands coming soon.
         """)
     else
-        return("### still at work")
-
+        input = args[2]
     end
 end
 

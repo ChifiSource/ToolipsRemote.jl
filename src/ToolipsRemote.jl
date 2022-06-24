@@ -108,7 +108,7 @@ mutable struct Remote <: ServerExtension
     motd::String
     function Remote(remotefunction::Function = evaluator,
         usernames::Vector{String} = ["root"];
-        motd::String = """### login to toolips remote session"""
+        motd::String = """### login to toolips remote session""",
         serving_f::Function = serve_remote)
         logins::Dict{String, Hash} = Dict([n => Hash() for n in usernames])
         users::Dict = Dict()
@@ -238,8 +238,12 @@ function controller()
     f(c::Connection, m::String,
                     commands::Dict{String, Function} = Dict("?" => helpme,
                     "logit" => logit)) begin
-        args = [string(arg) for arg in split(m, " ")]
-        cmd = args[1]
+        if contains(m, "\"")
+            quotepos = findall()
+        else
+            args = [string(arg) for arg in split(m, " ")]
+            cmd = args[1]
+        end
         if length(args) > 1
             args = args[2:length(args)]
         end

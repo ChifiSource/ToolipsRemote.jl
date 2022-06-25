@@ -106,7 +106,7 @@ mutable struct Remote <: ServerExtension
     logins::Dict{String, Hash}
     users::Dict
     motd::String
-    function Remote(remotefunction::Function = evaluator,
+    function Remote(remotefunction::Function = commands(),
         usernames::Vector{String} = ["root"];
         motd::String = """### login to toolips remote session""",
         serving_f::Function = serve_remote)
@@ -234,10 +234,10 @@ connectedrepl("myrepl", "http://127.0.0.1:8000", key::String)
 function evaluator(c::Connection, m::String)
     write!(c, string(eval(Meta.parse(m))))
 end
-function controller()
-    f(c::Connection, m::String,
-                    commands::Dict{String, Function} = Dict("?" => helpme,
-                    "logit" => logit)) begin
+
+function controller(commands::Dict{String, Function} = Dict("?" => helpme,
+                    "logit" => logit))
+    f(c::Connection, m::String) = begin
         if contains(m, "\"")
             quotepos = findall()
         else

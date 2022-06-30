@@ -106,7 +106,7 @@ mutable struct Remote <: ServerExtension
     logins::Dict{String, Hash}
     users::Dict
     motd::String
-    function Remote(remotefunction::Function = commands(),
+    function Remote(remotefunction::Function = controller(),
         usernames::Vector{String} = ["root"];
         motd::String = """### login to toolips remote session""",
         serving_f::Function = serve_remote)

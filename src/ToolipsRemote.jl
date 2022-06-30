@@ -162,7 +162,7 @@ function serve_remote(c::Connection)
                     key = newhash.f()
                     write!(c, "$name:$key")
                 else
-                    c[:Logger].log(string(usrpwd[2]))
+                    c[:Logger].log(string(usrpwd[2].data))
                     write!(c, "Your password was not found.")
                 end
             else
@@ -190,7 +190,7 @@ function connect(url::String)
     display(Markdown.parse(message))
     print("user: "); u = readline()
     pwd = Base.getpass("password for $u")
-    namekey = post("$url/remote/connect", "$u:$(string(pwd.data))")
+    namekey = post("$url/remote/connect", "$u:$(String(pwd.data))")
     Base.shred!(pwd)
     if contains(namekey, ":")
         display(md"#### connection successful!")

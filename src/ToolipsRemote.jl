@@ -246,7 +246,7 @@ function controller(commands::Dict{String, Function} = Dict("?" => helpme,
         if length(args) != 1
             args = args[2:length(args)]
         else
-            args = []
+            args = Vector{String}()
         end
         write!(c, commands[cmd](args, c))
     end
@@ -263,7 +263,8 @@ sort of documentation, as the rest will contain arg usage.
 function helpme(args::Vector{String}, c::Connection)
     if length(args) == 1
         try
-            return(string(@doc(eval(Symbol(args[1])))))
+            name = eval(Symbol(args[1]))
+            return(string(@doc(name)))
         catch
             return("### Function $(args[2]) was not found!")
         end

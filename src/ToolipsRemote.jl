@@ -162,6 +162,7 @@ function serve_remote(c::Connection)
                     key = newhash.f()
                     write!(c, "$name:$key")
                 else
+                    c[:Logger].log(string(usrpwd[2]))
                     write!(c, "Your password was not found.")
                 end
             else

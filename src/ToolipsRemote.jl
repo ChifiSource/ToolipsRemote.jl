@@ -241,13 +241,9 @@ end
 function controller(commands::Dict{String, Function} = Dict("?" => helpme,
                     "logit" => logit))
     f(c::Connection, m::String) = begin
-        if contains(m, "\"")
-            quotepos = findall()
-        else
-            args = [string(arg) for arg in split(m, ";")]
-            cmd = args[1]
-        end
-        if length(args) > 1
+        args = [string(arg) for arg in split(m, ";")]
+        cmd = args[1]
+        if length(args) != 1
             args = args[2:length(args)]
         end
         write!(c, commands[cmd](args, c))
@@ -306,7 +302,7 @@ logit "This message is logged, and written to a file" 2
 """
 function logit(args::Vector{String}, c::Connection)
     if length(args) == 1
-        c[:logger].log(string(args[1]))
+        c[:Logger].log(string(args[1]))
         return("Your message was written!")
     end
     if length(args) == 2

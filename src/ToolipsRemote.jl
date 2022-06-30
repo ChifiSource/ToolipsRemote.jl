@@ -261,13 +261,19 @@ going to take args::Vector{String}. This will be the only function with this
 sort of documentation, as the rest will contain arg usage.
 """
 function helpme(args::Vector{String}, c::Connection)
+    doc_lookup = Dict("logit" => """ ### logit !
+    The logit function is used to log things to your server remotely. The first
+        argument should be a message in the form of a string. The second is an
+        optional level.
+    ###
+    ```
+    logit;This message is logged
+    logit;This message is logged, and written to a file;2
+    ```
+    """
+    )
     if length(args) == 1
-        try
-            name = eval(Symbol(args[1]))
-            return(string(@doc(name)))
-        catch
-            return("### Function $(args[2]) was not found!")
-        end
+        return(doc_lookup[args[1]])
     else
         return("""### ?
         The ? command allows one to explore the various capabilities
@@ -287,18 +293,7 @@ function helpme(args::Vector{String}, c::Connection)
     end
 end
 
-"""
-### logit !
-The logit function is used to log things to your server remotely. The first
-    argument should be a message in the form of a string. The second is an
-    optional level.
-###
-```
-logit "This message is logged"
-logit "This message is logged, and written to a file" 2
-```
 
-"""
 function logit(args::Vector{String}, c::Connection)
     if length(args) == 1
         c[:Logger].log(string(args[1]))

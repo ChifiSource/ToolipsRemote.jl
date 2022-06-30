@@ -245,6 +245,8 @@ function controller(commands::Dict{String, Function} = Dict("?" => helpme,
         cmd = args[1]
         if length(args) != 1
             args = args[2:length(args)]
+        else
+            args = []
         end
         write!(c, commands[cmd](args, c))
     end
@@ -259,13 +261,13 @@ going to take args::Vector{String}. This will be the only function with this
 sort of documentation, as the rest will contain arg usage.
 """
 function helpme(args::Vector{String}, c::Connection)
-    if length(args) == 2
+    if length(args) == 1
         try
-            return(string(@doc(eval(Symbol(args[2])))))
+            return(string(@doc(eval(Symbol(args[1])))))
         catch
             return("### Function $(args[2]) was not found!")
         end
-    elseif length(args) == 1
+    else
         return("""### ?
         The ? command allows one to explore the various capabilities
         of the toolips session. Inside of this REPL, commands are issued with
@@ -280,10 +282,6 @@ function helpme(args::Vector{String}, c::Connection)
         - **?** command::String
         - **logit** **message::String** level::Int64
         - More commands coming soon.
-        """)
-    else
-        return("""### Not a correct number of arguments!
-        Try ? for more information.
         """)
     end
 end

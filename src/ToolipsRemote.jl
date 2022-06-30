@@ -24,7 +24,7 @@ import Toolips: ServerExtension
 
 """
 ### Hash
-- f::Function \
+- f::Function - The f function is used to return the Hash's value. \
 Creates an anonymous hashing function for a string of length(n). Can be
     indexed with nothing to retrieve Hash.
 ##### example
@@ -34,9 +34,6 @@ h = Hash(64)          #    vv getindex(::Hash)
 buffer = Base.SecretBuffer(hash[])
 if String(buffer.data) == "Password"
 ```
-------------------
-##### field info
-- f::Function - The f function is used to return the Hash's value.
 ------------------
 ##### constructors
 - Hash(n::Integer = 32)
@@ -56,14 +53,18 @@ struct Hash
         f() = begin
 
         end
-        f(s::String) = begin
+        f(inp::String) = begin
+            if inp == s
 
+            else
+
+            end
         end
     end
 end
 
 """
-**Session**
+**Remote**
 ### getindex(h::Hash) -> ::String
 ------------------
 Retrieves the value of the hashed data.
@@ -81,19 +82,22 @@ getindex(h::Hash) = h.f()
 - f::Function
 - logins::Dict{String, Hash}
 - users::Dict
-- motd::String \
+- motd::String - A message to be shown at the login screen.
 The remote extension makes it possible to connect to your server from
-another Julia REPL.
+another Julia REPL. Can be provided with an alternative remote function as the
+first positional argument, as well as a new serving function as the second
+positional argument. A remote function should take a Connection and a String.
+A serving function should take only a Connection.
 ##### example
 ```
-
+r = Remote()
+st = ServerTemplate(extensions = [Remote()])
 ```
 ------------------
-##### field info
-
-------------------
 ##### constructors
-
+Remote(remotefunction::Function = evaluator,
+        usernames::Vector{String};
+        motd::String, serving_f::Function)
 """
 mutable struct Remote <: ServerExtension
     type::Vector{Symbol}
@@ -102,14 +106,14 @@ mutable struct Remote <: ServerExtension
     logins::Dict{String, Hash}
     users::Dict
     motd::String
-    function Remote(remotefunction::Function = evaluator,
+    function Remote(remotefunction::Function = controller(),
         usernames::Vector{String} = ["root"];
-        motd::String = """### login to toolips remote session"""
-        )
+        motd::String = """### login to toolips remote session""",
+        serving_f::Function = serve_remote)
         logins::Dict{String, Hash} = Dict([n => Hash() for n in usernames])
         users::Dict = Dict()
         f(r::Dict, e::Dict) = begin
-            r["/remote/connect"] = serve_remote
+            r["/remote/connect"] = serving_f
             if has_extension(e, Logger)
                 e[:Logger].log(1, "ToolipsRemote is active !")
                 for user in logins
@@ -123,9 +127,13 @@ mutable struct Remote <: ServerExtension
             motd)::Remote
     end
 end
-getindex(r::Remote, s::String) = r.users
-"""
 
+"""
+**Remote**
+### serve_remote(c::Connection) -> _
+------------------
+Servers a remote login via the connect() method. This method is routed to
+/remote/connect
 """
 function serve_remote(c::Connection)
     message = getpost(c)
@@ -166,14 +174,23 @@ function serve_remote(c::Connection)
 end
 
 """
-
+**Remote**
+### connect(url::String) -> _
+------------------
+Connects to a toolips session extension at the given URL. Ensure http:// is
+provided prior to the URL.
+#### example
+```
+connect("http://127.0.0.1:8000")
+```
 """
 function connect(url::String)
     message = post("$url/remote/connect", "login")
     display(Markdown.parse(message))
     print("user: "); u = readline()
     pwd = Base.getpass("password for $u")
-    namekey = post("$url/remote/connect", "$u:$(string(pwd.data))")
+    data = pwd.data
+    namekey = post("$url/remote/connect", "$u:$(string(data))")
     Base.shred!(pwd)
     if contains(namekey, ":")
         display(md"#### connection successful!")
@@ -185,6 +202,16 @@ function connect(url::String)
     end
 end
 
+"""
+**Remote**
+### getindex(h::Hash) -> ::String
+------------------
+Creates the linked remote REPL.
+#### example
+```
+connectedrepl("myrepl", "http://127.0.0.1:8000", key::String)
+```
+"""
 function connected_repl(name::AbstractString, url::String, key::String)
     send_up(s::String) = begin
         r = post("$url/remote/connect", s * ":SESSIONKEY:$key")
@@ -198,61 +225,88 @@ function connected_repl(name::AbstractString, url::String, key::String)
 end
 
 """
+**Remote**
+### getindex(h::Hash) -> ::String
+------------------
+Runs eval on any incoming connection strings.
+#### example
+```
+connectedrepl("myrepl", "http://127.0.0.1:8000", key::String)
+```
 """
 function evaluator(c::Connection, m::String)
     write!(c, string(eval(Meta.parse(m))))
 end
 
-function controller(c::Connection, m::String,
-                commands::Dict{String, Function} = Dict("?" => helpme,
-                "log" => log))
-    args = [string(arg) for arg in split(m, " ")]
-    cmd = args[1]
-    write!(c, commands[cmd](args))
+function controller(commands::Dict{String, Function} = Dict("?" => helpme,
+                    "logit" => logit))
+    f(c::Connection, m::String) = begin
+        args = [string(arg) for arg in split(m, ";")]
+        cmd = args[1]
+        if length(args) != 1
+            args = args[2:length(args)]
+        else
+            args = Vector{String}()
+        end
+        write!(c, commands[cmd](args, c))
+    end
+    f
 end
 
-function helpme(args::Vector{String})
-    if length(args) > 2
-        return("""### Not a correct number of arguments!
-        Try ? for more information.
-        """)
-    elseif length(args) == 1
+"""
+helpme(args::Vector{String}) -> ::String
+---------------------
+This is one of the default controller() functions. All of these functions are
+going to take args::Vector{String}. This will be the only function with this
+sort of documentation, as the rest will contain arg usage.
+"""
+function helpme(args::Vector{String}, c::Connection)
+    doc_lookup = Dict("logit" => """ ### logit !
+    The logit function is used to log things to your server remotely. The first
+        argument should be a message in the form of a string. The second is an
+        optional level.
+    ###
+    ```
+    logit;This message is logged
+    logit;This message is logged, and written to a file;2
+    ```
+    """
+    )
+    if length(args) == 1
+        return(doc_lookup[args[1]])
+    else
         return("""### ?
         The ? command allows one to explore the various capabilities
         of the toolips session. Inside of this REPL, commands are issued with
-        their arguments followed by spaces. The ? application, as an example
-        takes one argument. The one argument is the
+        their arguments seperated by semi-colons. The ? application, as an
+        example takes one argument. The one argument is the application you wish
+        to call docs for.
         ```
-
+        ?;logit
         ```
         ##### Command
         - **Command** **arg1::Type (Required)** arg2::Type arg3::Type
         - **?** command::String
-        - **log** **message::String** level::Int64
+        - **logit** **message::String** level::Int64
         - More commands coming soon.
         """)
-    else
-        input = args[2]
     end
 end
 
-function log(c::Connection, args::AbstractString ...)
-    if length(args) > 2
-        write!(c, "### Not a correct number of arguments!\n")
-        write!(c, "You can send ? log to find out more information.")
-        return
+
+function logit(args::Vector{String}, c::Connection)
+    if length(args) == 1
+        c[:Logger].log(string(args[1]))
+        return("Your message was written!")
     end
     if length(args) == 2
         level = parse(Int64, string(args[2]))
         c[:Logger].log(level, string(args[1]))
+        return("Your message was written!")
     else
-        c[:logger].log(string(args[1]))
+        return("### Not a correct number of arguments!")
     end
 end
 
-function reroute(c::Connection, args::AbstractString ...)
-
-end
-
-export Remote, connect
+export Remote, connect, controller
 end # module

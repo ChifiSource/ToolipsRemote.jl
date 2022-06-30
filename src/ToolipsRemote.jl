@@ -162,7 +162,6 @@ function serve_remote(c::Connection)
                     key = newhash.f()
                     write!(c, "$name:$key")
                 else
-                    c[:Logger].log(string(usrpwd[2]))
                     write!(c, "Your password was not found.")
                 end
             else
@@ -245,13 +244,13 @@ function controller(commands::Dict{String, Function} = Dict("?" => helpme,
         if contains(m, "\"")
             quotepos = findall()
         else
-            args = [string(arg) for arg in split(m, " ")]
+            args = [string(arg) for arg in split(m, ";")]
             cmd = args[1]
         end
         if length(args) > 1
             args = args[2:length(args)]
         end
-        write!(c, commands[cmd](args))
+        write!(c, commands[cmd](args, c))
     end
     f
 end
@@ -263,7 +262,7 @@ This is one of the default controller() functions. All of these functions are
 going to take args::Vector{String}. This will be the only function with this
 sort of documentation, as the rest will contain arg usage.
 """
-function helpme(args::Vector{String})
+function helpme(args::Vector{String}, c::Connection)
     if length(args) == 2
         try
             return(string(@doc(eval(Symbol(args[2])))))
@@ -274,10 +273,11 @@ function helpme(args::Vector{String})
         return("""### ?
         The ? command allows one to explore the various capabilities
         of the toolips session. Inside of this REPL, commands are issued with
-        their arguments followed by spaces. The ? application, as an example
-        takes one argument. The one argument is the
+        their arguments seperated by semi-colons. The ? application, as an
+        example takes one argument. The one argument is the application you wish
+        to call docs for.
         ```
-
+        ?;logit
         ```
         ##### Command
         - **Command** **arg1::Type (Required)** arg2::Type arg3::Type
@@ -304,7 +304,7 @@ logit "This message is logged, and written to a file" 2
 ```
 
 """
-function logit(args::Vector{String})
+function logit(args::Vector{String}, c::Connection)
     if length(args) == 1
         c[:logger].log(string(args[1]))
         return("Your message was written!")

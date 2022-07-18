@@ -22,6 +22,9 @@ using ReplMaker
 using Markdown
 import Toolips: ServerExtension
 
+#==
+Hash
+==#
 """
 ### Hash
 - f::Function - The f function is used to return the Hash's value. \
@@ -74,6 +77,9 @@ pwd = h[]
 ```
 """
 getindex(h::Hash) = h.f()
+#==
+TODO: usergroups
+==#
 
 """
 ### Remote <: Toolips.ServerExtension
@@ -200,6 +206,13 @@ function connect(url::String)
     else
         display(md"$namekey")
     end
+end
+
+#==
+TODO Peer connect
+==#
+function peer_connect(url::String)
+
 end
 
 """

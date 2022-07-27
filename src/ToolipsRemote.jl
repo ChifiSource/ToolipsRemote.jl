@@ -20,66 +20,7 @@ using Random
 using ParseNotEval
 using ReplMaker
 using Markdown
-import Toolips: ServerExtension
-
-#==
-Hash
-==#
-"""
-### Hash
-- f::Function - The f function is used to return the Hash's value. \
-Creates an anonymous hashing function for a string of length(n). Can be
-    indexed with nothing to retrieve Hash.
-##### example
-```
-# 64-character hash
-h = Hash(64)          #    vv getindex(::Hash)
-buffer = Base.SecretBuffer(hash[])
-if String(buffer.data) == "Password"
-```
-------------------
-##### constructors
-- Hash(n::Integer = 32)
-- Hash(s::String)
-"""
-struct Hash
-    f::Function
-    function Hash(n::Integer = 32)
-        seed = rand(1:100000000)
-        f() = begin
-            Random.seed!(seed); randstring(n)
-        end
-        new(f)
-    end
-    function Hash(s::String)
-        seed = rand(1:100000000)
-        f() = begin
-
-        end
-        f(inp::String) = begin
-            if inp == s
-
-            else
-
-            end
-        end
-    end
-end
-
-"""
-**Remote**
-### getindex(h::Hash) -> ::String
-------------------
-Retrieves the value of the hashed data.
-#### example
-```
-pwd = h[]
-```
-"""
-getindex(h::Hash) = h.f()
-#==
-TODO: usergroups
-==#
+import Toolips: ServerExtension, AbstractRoute
 
 """
 ### Remote <: Toolips.ServerExtension
@@ -118,7 +59,7 @@ mutable struct Remote <: ServerExtension
         serving_f::Function = serve_remote)
         logins::Dict{String, Hash} = Dict([n => Hash() for n in usernames])
         users::Dict = Dict()
-        f(r::Dict, e::Dict) = begin
+        f(r::Vector{AbstractRoute}, e::Vector{ServerExtension}) = begin
             r["/remote/connect"] = serving_f
             if has_extension(e, Logger)
                 e[:Logger].log(1, "ToolipsRemote is active !")

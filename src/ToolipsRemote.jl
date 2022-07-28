@@ -15,11 +15,10 @@ You can connect to a served Remote extension using the connect method.
 """
 module ToolipsRemote
 using Toolips
-using Random
 using ParseNotEval
 using ReplMaker
 using Markdown
-using Remote
+using SHA
 import Toolips: ServerExtension, AbstractRoute
 
 """
@@ -51,14 +50,15 @@ mutable struct Remote <: ServerExtension
     remotefunction::Function
     f::Function
     logins::Dict{String, Vector{UInt8}}
+    users::Dict{Vector{UInt8}, String}
     motd::String
     function Remote(remotefunction::Function = controller(),
         users::Vector{Pair{String, String}} = ["root" => "1234"];
         motd::String = """### login to toolips remote session""",
         serving_f::Function = serve_remote)
         logins::Dict{String, Vector{UInt8}} = Dict(
-        [n[1] => sha256(n[2]) for n in usernames])
-        users::Dict{Vector{UInt8, String}} = Dict{Vector{UInt8, String}}()
+        [n[1] => sha256(n[2]) for n in users])
+        users::Dict{Vector{UInt8}, String} = Dict{Vector{UInt8}, String}()
         f(r::Vector{AbstractRoute}, e::Vector{ServerExtension}) = begin
             r["/remote/connect"] = serving_f
         end

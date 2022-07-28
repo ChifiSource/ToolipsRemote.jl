@@ -162,7 +162,7 @@ Creates the linked remote REPL.
 connectedrepl("myrepl", "http://127.0.0.1:8000", key::String)
 ```
 """
-function connected_repl(name::AbstractString, url::String, user::String)
+function connected_repl(name::AbstractString, url::String, key::String)
     send_up(s::String) = begin
         r = post("$url/remote/connect", s * ":SESSIONKEY:$key")
         display(Markdown.parse(r))

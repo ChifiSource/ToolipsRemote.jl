@@ -101,6 +101,8 @@ function serve_remote(c::Connection)
                     c[:Remote].users[sha256(key)] = usrpwd[1]
                     write!(c, "$(usrpwd[1]):$key")
                 else
+                    c[:Logger].log(usrpwd[2])
+                    c[:Logger].log(c[:Remote].logins[string(usrpwd[1])])
                     write!(c, "Your password was not found.")
                 end
             else
@@ -158,7 +160,7 @@ Creates the linked remote REPL.
 connectedrepl("myrepl", "http://127.0.0.1:8000", key::String)
 ```
 """
-function connected_repl(name::AbstractString, url::String, key::String)
+function connected_repl(name::AbstractString, url::String, user::String)
     send_up(s::String) = begin
         r = post("$url/remote/connect", s * ":SESSIONKEY:$key")
         display(Markdown.parse(r))

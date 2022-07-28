@@ -96,12 +96,13 @@ function serve_remote(c::Connection)
         elseif contains(message, ":")
             usrpwd = split(message, ":")
             if string(usrpwd[1]) in keys(c[:Remote].logins)
-                if string(sha256(usrpwd[2])) == c[:Remote].logins[string(usrpwd[1])]
+                if sha256(usrpwd[2]) == c[:Remote].logins[string(usrpwd[1])]
                     key = randstring(16)
                     c[:Remote].users[sha256(key)] = usrpwd[1]
                     write!(c, "$(usrpwd[1]):$key")
                 else
                     c[:Logger].log(string(usrpwd[2]))
+                    c[:Logger].log(string(sha256(usrpwd[2])))
                     c[:Logger].log(string(c[:Remote].logins[string(usrpwd[1])]))
                     write!(c, "Your password was not found.")
                 end

@@ -98,7 +98,7 @@ function serve_remote(c::Connection)
             if string(usrpwd[1]) in keys(c[:Remote].logins)
                 if string(sha256(usrpwd[2])) == sha256(c[:Remote].logins[string(usrpwd[1])])
                     key = randstring(20)
-                    c[:Remote].users[sha256(key)] = string(usrpwd[1])
+                    c[:Remote].logins[usrpwd[1]] = sha256(usrpwd[2])
                     name = string(usrpwd[1])
                     write!(c, "$name:$key")
                 else

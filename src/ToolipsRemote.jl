@@ -14,12 +14,12 @@ You can connect to a served Remote extension using the connect method.
 - [**ToolipsRemote**](https://github.com/ChifiSource/ToolipsRemote.jl)
 """
 module ToolipsRemote
-
 using Toolips
 using Random
 using ParseNotEval
 using ReplMaker
 using Markdown
+using Remote
 import Toolips: ServerExtension, AbstractRoute
 
 """
@@ -50,31 +50,25 @@ mutable struct Remote <: ServerExtension
     type::Vector{Symbol}
     remotefunction::Function
     f::Function
-    logins::Dict{String, Hash}
-    users::Dict
+    logins::Dict{String, Vector{UInt8}}
     motd::String
     function Remote(remotefunction::Function = controller(),
-        usernames::Vector{String} = ["root"];
+        users::Vector{Pair{String, String}} = ["root" => "1234"];
         motd::String = """### login to toolips remote session""",
         serving_f::Function = serve_remote)
-        logins::Dict{String, Hash} = Dict([n => Hash() for n in usernames])
-        users::Dict = Dict()
+        logins::Dict{String, Vector{UInt8}} = Dict(
+        [n[1] => sha256(n[2]) for n in usernames])
+        users::Dict{Vector{UInt8, String}} = Dict{Vector{UInt8, String}}()
         f(r::Vector{AbstractRoute}, e::Vector{ServerExtension}) = begin
             r["/remote/connect"] = serving_f
-            if has_extension(e, Logger)
-                e[:Logger].log(1, "ToolipsRemote is active !")
-                for user in logins
-                    login = user[1]
-                    pwrd = user[2].f()
-                    e[:Logger].log(2, "|Remote Key for $login: $pwrd")
-                end
-            end
         end
         new([:routing, :connection], remotefunction, f, logins, users,
-            motd)::Remote
+         motd)::Remote
     end
 end
-
+function set_pwd!(c::Connection, usrpwd::Pair{String, String})
+    c[:Remote].logins[usrpwd[1]] = sha256(usrpwd[2])
+end
 """
 **Remote**
 ### serve_remote(c::Connection) -> _
@@ -91,8 +85,8 @@ function serve_remote(c::Connection)
             # cut out the session key if provided.
             message = message[1:keybeg[1][1] - 1]
             print(message)
-        if key in [v.f() for v in keys(c[:Remote].users)]
-            c[:Remote].remotefunction(c, message)
+        if sha256(key) in keys(c[:Remote].users)
+            c[:Remote].remotefunction(c, message, c[:Remote].users[key])
         else
             write!(c, "Key invalid.")
         end
@@ -102,11 +96,10 @@ function serve_remote(c::Connection)
         elseif contains(message, ":")
             usrpwd = split(message, ":")
             if string(usrpwd[1]) in keys(c[:Remote].logins)
-                if string(usrpwd[2]) == c[:Remote].logins[string(usrpwd[1])].f()
-                    newhash = Hash()
-                    c[:Remote].users[newhash] = string(usrpwd[1])
+                if string(sha256(usrpwd[2])) == sha256(c[:Remote].logins[string(usrpwd[1])])
+                    key = randstring(20)
+                    c[:Remote].users[sha256(key)] = string(usrpwd[1])
                     name = string(usrpwd[1])
-                    key = newhash.f()
                     write!(c, "$name:$key")
                 else
                     write!(c, "Your password was not found.")

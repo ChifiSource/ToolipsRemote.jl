@@ -17,6 +17,7 @@ module ToolipsRemote
 using Toolips
 using ParseNotEval
 using ReplMaker
+using Random
 using Markdown
 using SHA
 import Toolips: ServerExtension, AbstractRoute
@@ -86,7 +87,7 @@ function serve_remote(c::Connection)
             message = message[1:keybeg[1][1] - 1]
             print(message)
         if sha256(key) in keys(c[:Remote].users)
-            c[:Remote].remotefunction(c, message, c[:Remote].users[key])
+            c[:Remote].remotefunction(c, message, c[:Remote].users[sha256(key)])
         else
             write!(c, "Key invalid.")
         end

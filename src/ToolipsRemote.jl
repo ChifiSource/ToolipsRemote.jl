@@ -55,7 +55,7 @@ mutable struct Remote <: ServerExtension
     motd::String
     function Remote(
         remotefunction::Dict{Int64, Function} = Dict{Int64, Function}(1 => controller()),
-        users::Vector{Pair{String, Pair}} = ["root" => "1234" => 1];
+        users::Vector{Pair{String, Pair{String, Int64}}} = ["root" => "1234" => 1];
         motd::String = """### login to toolips remote session""",
         serving_f::Function = serve_remote)
         logins::Dict{String, Vector{UInt8}} = Dict(

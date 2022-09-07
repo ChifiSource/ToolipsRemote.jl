@@ -77,7 +77,20 @@ mutable struct Remote <: ServerExtension
     end
 end
 
-
+"""
+**Remote**
+### set_pwd!(::Connection, ::Pair{String, String}) -> _
+------------------
+Changes the connected user's Remote password.
+#### example
+```
+# this function will just set the password to whatever
+ # the replica sends.
+myremote(c::RemoteConnection) = begin
+    set_pwd!(c, c.name => c.message)
+end
+```
+"""
 function set_pwd!(c::Connection, usrpwd::Pair{String, String})
     c[:Remote].logins[usrpwd[1]] = sha256(usrpwd[2])
 end

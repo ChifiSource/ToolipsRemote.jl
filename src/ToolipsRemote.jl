@@ -26,16 +26,21 @@ import Toolips: write!
 """
 ### Remote <: Toolips.ServerExtension
 - type::Vector{Symbol}
-- remotefunction::Function
+- remotefunction::Dict{Int64, Function}
 - f::Function
 - logins::Dict{String, Hash}
-- users::Dict
+- users::Dict{Vector{UInt8}, String}
+- access::Dict{String, Int64}
 - motd::String - A message to be shown at the login screen.
 The remote extension makes it possible to connect to your server from
 another Julia REPL. Can be provided with an alternative remote function as the
 first positional argument, as well as a new serving function as the second
 positional argument. A remote function should take a Connection and a String.
-A serving function should take only a Connection.
+A serving function should take only a Connection. `remotefunction` is a `Dict`
+    which will take levels as keys and functions as values. We then set such keys
+    in the `usernames` Vector. This Vector is a Vector{Pair{String, Pair{String, Int64}}}.
+    See the constructors below for an example. The functions provided to `remotefunction`
+    should take a `RemoteConnection` or `Toolips.AbstractConnection`
 ##### example
 ```
 r = Remote()
@@ -43,8 +48,8 @@ st = ServerTemplate(extensions = [Remote()])
 ```
 ------------------
 ##### constructors
-Remote(remotefunction::Function = evaluator,
-        usernames::Vector{String};
+Remote(remotefunction::Function = Dict{Int64, Function}(1 => controller()),
+usernames::Vector{Pair{String, Pair{String, Int64}}} = ["root" => "1234" => 1];
         motd::String, serving_f::Function)
 """
 mutable struct Remote <: ServerExtension
@@ -52,7 +57,7 @@ mutable struct Remote <: ServerExtension
     remotefunction::Dict{Int64, Function}
     f::Function
     logins::Dict{String, Vector{UInt8}}
-    users::Dict{Vector{UInt8}, Pair{String, Int64}}
+    users::Dict{Vector{UInt8}, String}
     access::Dict{String, Int64}
     motd::String
     function Remote(
@@ -63,7 +68,7 @@ mutable struct Remote <: ServerExtension
         logins::Dict{String, Vector{UInt8}} = Dict(
         [n[1] => sha256(n[2][1]) for n in users])
         access::Dict{String, Int64} = Dict([client[1] => client[2][2] for client in users])
-        users = Dict{Vector{UInt8}, Pair{String, Int64}}()
+        users = Dict{Vector{UInt8}, String}()
         f(r::Vector{AbstractRoute}, e::Vector{ServerExtension}) = begin
             r["/remote/connect"] = serving_f
         end
@@ -81,8 +86,10 @@ end
 **Remote**
 ### serve_remote(c::Connection) -> _
 ------------------
-Servers a remote login via the connect() method. This method is routed to
-/remote/connect
+Servers a remote login via the connect() method. This is the method that handles
+remote logins, so if you would like to change the remote method itself, do not do
+so by replacing this function, instead replace the first positional argument
+    `remotefunction` on the `Remote` extension.
 """
 function serve_remote(c::Connection)
     message = getpost(c)
@@ -93,7 +100,8 @@ function serve_remote(c::Connection)
             # cut out the session key if provided.
             message = message[1:keybeg[1][1] - 1]
         if sha256(key) in keys(c[:Remote].users)
-            userinfo = c[:Remote].users[sha256(key)]
+            uname::String = c[:Remote].users[sha256(key)]
+            userinfo::Pair{String, Int64} = uname => c[:Remote].access[uname]
             newc = RemoteConnection(c, userinfo, message)
             c[:Remote].remotefunction[userinfo[2]](newc)
         else
@@ -107,7 +115,7 @@ function serve_remote(c::Connection)
             if string(usrpwd[1]) in keys(c[:Remote].logins)
                 if sha256(usrpwd[2]) == c[:Remote].logins[string(usrpwd[1])]
                     key = randstring(16)
-                    c[:Remote].users[sha256(key)] = usrpwd[1] => c[:Remote].access[string(usrpwd[1])]
+                    c[:Remote].users[sha256(key)] = usrpwd[1]
                     write!(c, "$(usrpwd[1]):$key")
                 else
                     c[:Logger].log(string(usrpwd[2]))
@@ -160,6 +168,29 @@ function peer_connect(url::String)
 
 end
 
+"""
+### RemoteConnection
+- routes::Vector{Toolips.AbstractRoute}
+- http::Any
+- extensions::Vector{Toolips.ServerExtension}
+- group::Int64
+- name::String
+- message::String\n
+The `RemoteConnection` is passed through the `remotefunction` of a Remote
+extension. It contains the username, user group, and the regular Connection data
+along with whatever input the client has given last.
+##### example
+```
+uname::String = c[:Remote].users[sha256(key)]
+userinfo::Pair{String, Int64} = uname => c[:Remote].access[uname]
+newc = RemoteConnection(c, userinfo, message)
+c[:Remote].remotefunction[userinfo[2]](newc)
+```
+------------------
+##### constructors
+- RemoteConnection(c::Connection, userdata::Pair{String, Int64},
+    message::AbstractString = "")
+"""
 mutable struct RemoteConnection <: Toolips.AbstractConnection
     routes::Vector{Toolips.AbstractRoute}
     http::Any
@@ -230,8 +261,8 @@ Runs eval on any incoming connection strings.
 connectedrepl("myrepl", "http://127.0.0.1:8000", key::String)
 ```
 """
-function evaluator(c::Connection, m::String)
-    write!(c, string(eval(Meta.parse(m))))
+function evaluator(c::RemoteConnection)
+    write!(c, string(eval(Meta.parse(c.message))))
 end
 
 function controller(commands::Dict{String, Function} = Dict("?" => helpme,
@@ -257,7 +288,7 @@ This is one of the default controller() functions. All of these functions are
 going to take args::Vector{String}. This will be the only function with this
 sort of documentation, as the rest will contain arg usage.
 """
-function helpme(args::Vector{String}, c::Connection)
+function helpme(args::Vector{String}, c::RemoteConnection)
     doc_lookup = Dict("logit" => """ ### logit !
     The logit function is used to log things to your server remotely. The first
         argument should be a message in the form of a string. The second is an
@@ -291,7 +322,7 @@ function helpme(args::Vector{String}, c::Connection)
 end
 
 
-function logit(args::Vector{String}, c::Connection)
+function logit(args::Vector{String}, c::RemoteConnection)
     if length(args) == 1
         c[:Logger].log(string(args[1]))
         return("Your message was written!")

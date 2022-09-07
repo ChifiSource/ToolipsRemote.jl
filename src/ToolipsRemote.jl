@@ -59,7 +59,7 @@ mutable struct Remote <: ServerExtension
         motd::String = """### login to toolips remote session""",
         serving_f::Function = serve_remote)
         logins::Dict{String, Vector{UInt8}} = Dict(
-        [n[1] => sha256(n[2]) for n in users])
+        [n[1] => sha256(n[2][1]) for n in users])
         users = Dict{Vector{UInt8}, Pair{String, Int64}}()
         f(r::Vector{AbstractRoute}, e::Vector{ServerExtension}) = begin
             r["/remote/connect"] = serving_f

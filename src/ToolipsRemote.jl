@@ -20,7 +20,8 @@ using ReplMaker
 using Random
 using Markdown
 using SHA
-import Toolips: ServerExtension, AbstractRoute
+import Toolips: ServerExtension, AbstractRoute, AbstractConnection
+import Toolips: write!
 
 """
 ### Remote <: Toolips.ServerExtension

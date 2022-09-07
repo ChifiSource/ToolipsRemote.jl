@@ -29,3 +29,26 @@ function home(c::AbstractConnection)
     write!(c, mydivider)
 end
 ```
+Once our `ToolipsServer` is started, we can use the `connect` method in order to connect to our server.
+```julia
+julia> using ToolipsRemote
+
+julia> connect("http://127.0.0.1:8000")
+  login to toolips remote session
+  –––––––––––––––––––––––––––––––––
+user: root
+password for root: 
+  connection successful!
+  ------------------------
+REPL mode remote initialized. Press [ to enter and backspace to exit.
+"Prompt(\"🔗 root> \",...)"
+
+🔗 root> showexample
+  ────────────────────────────────────────────────────────────────────────────
+
+  hello world!
+  ≡≡≡≡≡≡≡≡≡≡≡≡≡≡
+
+  toolips :) (https://toolips.app)–-
+
+```

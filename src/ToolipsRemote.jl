@@ -174,22 +174,30 @@ mutable struct RemoteConnection <: Toolips.AbstractConnection
     end
 end
 
+macro R_str(s)
+    s
+end
+
 function write!(c::RemoteConnection, s::Component{<:Any})
     write!(c, s[:text])
 end
 
 function write!(c::RemoteConnection, s::Component{:div})
-    write!(c, "---")
+    write!(c, "---" * R"\n")
     [write!(c, child) for child in s[:children]]
-    write!(c, "---")
+    write!(c, "---" * R"\n")
 end
 
-write!(c::RemoteConnection, s::Component{:h1}) = write!(c, "# $(s[:text])\n")
-write!(c::RemoteConnection, s::Component{:h2}) = write!(c, "## $(s[:text])\n")
-write!(c::RemoteConnection, s::Component{:h3}) = write!(c, "### $(s[:text])\n")
-write!(c::RemoteConnection, s::Component{:h4}) = write!(c, "#### $(s[:text])\n")
+
+
+write!(c::RemoteConnection, s::Component{:h1}) = write!(c, "# $(s[:text])" * R"\n")
+write!(c::RemoteConnection, s::Component{:h2}) = write!(c, "## $(s[:text]))" * R"\n")
+write!(c::RemoteConnection, s::Component{:h3}) = write!(c, "### $(s[:text])" * R"\n")
+write!(c::RemoteConnection, s::Component{:h4}) = write!(c, "#### $(s[:text])" * R"\n")
 write!(c::RemoteConnection, s::Component{:b}) = write!(c, "**$(s[:text])**")
 write!(c::RemoteConnection, s::Component{:a}) = write!(c, "[$(s[:text])]($(s[:href]))")
+
+
 """
 **Remote**
 ### getindex(h::Hash) -> ::String

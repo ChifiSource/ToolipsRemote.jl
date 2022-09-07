@@ -63,7 +63,6 @@ mutable struct Remote <: ServerExtension
         logins::Dict{String, Vector{UInt8}} = Dict(
         [n[1] => sha256(n[2][1]) for n in users])
         users = Dict{Vector{UInt8}, Pair{String, Int64}}()
-        [push!(users, v[2])]
         access::Dict{String, Int64} = Dict([client[1] => client[2][1] for client in users])
         f(r::Vector{AbstractRoute}, e::Vector{ServerExtension}) = begin
             r["/remote/connect"] = serving_f

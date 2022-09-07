@@ -53,6 +53,7 @@ mutable struct Remote <: ServerExtension
     f::Function
     logins::Dict{String, Vector{UInt8}}
     users::Dict{Vector{UInt8}, Pair{String, Int64}}
+    access::Dict{String, Int64}
     motd::String
     function Remote(
         remotefunction::Dict{Int64, Function} = Dict{Int64, Function}(1 => controller()),
@@ -62,11 +63,13 @@ mutable struct Remote <: ServerExtension
         logins::Dict{String, Vector{UInt8}} = Dict(
         [n[1] => sha256(n[2][1]) for n in users])
         users = Dict{Vector{UInt8}, Pair{String, Int64}}()
+        [push!(users, v[2])]
+        access::Dict{String, Int64} = Dict([client[1] => client[2][1] for client in users])
         f(r::Vector{AbstractRoute}, e::Vector{ServerExtension}) = begin
             r["/remote/connect"] = serving_f
         end
         new([:routing, :connection], remotefunction, f, logins, users,
-         motd)::Remote
+         access, motd)::Remote
     end
 end
 
@@ -105,7 +108,7 @@ function serve_remote(c::Connection)
             if string(usrpwd[1]) in keys(c[:Remote].logins)
                 if sha256(usrpwd[2]) == c[:Remote].logins[string(usrpwd[1])]
                     key = randstring(16)
-                    c[:Remote].users[sha256(key)][1] = usrpwd[1]
+                    c[:Remote].users[sha256(key)] = usrpwd[1] => key => c[:Remote].access[string(usrpwd[1])]
                     write!(c, "$(usrpwd[1]):$key")
                 else
                     c[:Logger].log(string(usrpwd[2]))

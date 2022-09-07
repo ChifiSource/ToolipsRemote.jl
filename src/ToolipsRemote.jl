@@ -48,18 +48,18 @@ Remote(remotefunction::Function = evaluator,
 """
 mutable struct Remote <: ServerExtension
     type::Vector{Symbol}
-    remotefunction::Function
+    remotefunction::Dict{Int64, Function}
     f::Function
     logins::Dict{String, Vector{UInt8}}
-    users::Dict{Vector{UInt8}, String}
+    users::Dict{Vector{UInt8}, Pair{String, Int64}}
     motd::String
-    function Remote(remotefunction::Function = controller(),
-        users::Vector{Pair{String, String}} = ["root" => "1234"];
+    function Remote(remotefunction::Dict{Int64, Function} = Dict(1 => controller()),
+        users::Vector{Pair{String, Pair}} = ["root" => "1234" => 1];
         motd::String = """### login to toolips remote session""",
         serving_f::Function = serve_remote)
         logins::Dict{String, Vector{UInt8}} = Dict(
         [n[1] => sha256(n[2]) for n in users])
-        users::Dict{Vector{UInt8}, String} = Dict{Vector{UInt8}, String}()
+        users = Dict{Vector{UInt8}, Pair{String, Int64}}()
         f(r::Vector{AbstractRoute}, e::Vector{ServerExtension}) = begin
             r["/remote/connect"] = serving_f
         end
@@ -67,9 +67,12 @@ mutable struct Remote <: ServerExtension
          motd)::Remote
     end
 end
+
+
 function set_pwd!(c::Connection, usrpwd::Pair{String, String})
     c[:Remote].logins[usrpwd[1]] = sha256(usrpwd[2])
 end
+
 """
 **Remote**
 ### serve_remote(c::Connection) -> _
@@ -85,9 +88,10 @@ function serve_remote(c::Connection)
             key = message[keystart:length(message)]
             # cut out the session key if provided.
             message = message[1:keybeg[1][1] - 1]
-            print(message)
         if sha256(key) in keys(c[:Remote].users)
-            c[:Remote].remotefunction(c, message, c[:Remote].users[sha256(key)])
+            userinfo = c[:Remote].users[sha256(key)]
+            newc = RemoteConnection(c, userinfo, message)
+            c[:Remote].remotefunction[userinfo[2]](newc)
         else
             write!(c, "Key invalid.")
         end
@@ -99,7 +103,7 @@ function serve_remote(c::Connection)
             if string(usrpwd[1]) in keys(c[:Remote].logins)
                 if sha256(usrpwd[2]) == c[:Remote].logins[string(usrpwd[1])]
                     key = randstring(16)
-                    c[:Remote].users[sha256(key)] = usrpwd[1]
+                    c[:Remote].users[sha256(key)][1] = usrpwd[1]
                     write!(c, "$(usrpwd[1]):$key")
                 else
                     c[:Logger].log(string(usrpwd[2]))
@@ -152,6 +156,36 @@ function peer_connect(url::String)
 
 end
 
+mutable struct RemoteConnection <: Toolips.AbstractConnection
+    routes::Vector{Toolips.AbstractRoute}
+    http::Any
+    extensions::Vector{Toolips.ServerExtension}
+    group::Int64
+    name::String
+    message::String
+    function RemoteConnection(c::Connection, userdata::Pair{String, Int64},
+        message::AbstractString = "")
+        new(c.routes, c.http, c.extensions, userdata[2], userdata[1],
+        string(message))::RemoteConnection
+    end
+end
+
+function write!(c::RemoteConnection, s::Component{<:Any})
+    write!(c, s[:text])
+end
+
+function write!(c::RemoteConnection, s::Component{:div})
+    write!(c, "---")
+    [write!(c, child) for child in s[:children]]
+    write!(c, "---")
+end
+
+write!(c::RemoteConnection, s::Component{:h1}) = write!(c, "# $(s[:text])\n")
+write!(c::RemoteConnection, s::Component{:h2}) = write!(c, "## $(s[:text])\n")
+write!(c::RemoteConnection, s::Component{:h3}) = write!(c, "### $(s[:text])\n")
+write!(c::RemoteConnection, s::Component{:h4}) = write!(c, "#### $(s[:text])\n")
+write!(c::RemoteConnection, s::Component{:b}) = write!(c, "**$(s[:text])**")
+write!(c::RemoteConnection, s::Component{:a}) = write!(c, "[$(s[:text])]($(s[:href]))")
 """
 **Remote**
 ### getindex(h::Hash) -> ::String
@@ -190,7 +224,8 @@ end
 
 function controller(commands::Dict{String, Function} = Dict("?" => helpme,
                     "logit" => logit))
-    f(c::Connection, m::String) = begin
+    f(c::RemoteConnection) = begin
+        m = c.message
         args = [string(arg) for arg in split(m, ";")]
         cmd = args[1]
         if length(args) != 1

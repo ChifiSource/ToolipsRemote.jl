@@ -19,7 +19,7 @@ function start(IP::String = "127.0.0.1", PORT::Integer = 8000)
      ws.start(); ws
 end
 ```
-Functions can be changed by providing to the first postional argument a `Dict{Int64, Function} with a different function for each user group, represented by an `Int64`. Users can be changed by modifying the users Vector right after it, passwords can promptly and easily be changed using the `set_pwd` method. Of course, this can also be provided via an environmental variable. When writing a Remote function, make sure that there is a method for a single positional argument either of type `AbstractConnnection` or `RemoteConnection`. If your function is annotated as an `AbstractConnection`, you could even use the same exact route that serves your website.
+Functions can be changed by providing to the first postional argument a `Dict{Int64, Function}` with a different function for each user group, represented by an `Int64`. Users can be changed by modifying the users Vector right after it, passwords can promptly and easily be changed using the `set_pwd` method. Of course, this can also be provided via an environmental variable. When writing a Remote function, make sure that there is a method for a single positional argument either of type `AbstractConnnection` or `RemoteConnection`. If your function is annotated as an `AbstractConnection`, you could even use the same exact route that serves your website.
 ```julia
 function home(c::AbstractConnection)
     mydivider = div("mydivider")

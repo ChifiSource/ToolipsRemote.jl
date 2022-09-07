@@ -14,66 +14,14 @@ You can connect to a served Remote extension using the connect method.
 - [**ToolipsRemote**](https://github.com/ChifiSource/ToolipsRemote.jl)
 """
 module ToolipsRemote
-
 using Toolips
-using Random
 using ParseNotEval
 using ReplMaker
+using Random
 using Markdown
-import Toolips: ServerExtension
-
-"""
-### Hash
-- f::Function - The f function is used to return the Hash's value. \
-Creates an anonymous hashing function for a string of length(n). Can be
-    indexed with nothing to retrieve Hash.
-##### example
-```
-# 64-character hash
-h = Hash(64)          #    vv getindex(::Hash)
-buffer = Base.SecretBuffer(hash[])
-if String(buffer.data) == "Password"
-```
-------------------
-##### constructors
-- Hash(n::Integer = 32)
-- Hash(s::String)
-"""
-struct Hash
-    f::Function
-    function Hash(n::Integer = 32)
-        seed = rand(1:100000000)
-        f() = begin
-            Random.seed!(seed); randstring(n)
-        end
-        new(f)
-    end
-    function Hash(s::String)
-        seed = rand(1:100000000)
-        f() = begin
-
-        end
-        f(inp::String) = begin
-            if inp == s
-
-            else
-
-            end
-        end
-    end
-end
-
-"""
-**Remote**
-### getindex(h::Hash) -> ::String
-------------------
-Retrieves the value of the hashed data.
-#### example
-```
-pwd = h[]
-```
-"""
-getindex(h::Hash) = h.f()
+using SHA
+import Toolips: ServerExtension, AbstractRoute, AbstractConnection
+import Toolips: write!
 
 """
 ### Remote <: Toolips.ServerExtension
@@ -101,31 +49,32 @@ Remote(remotefunction::Function = evaluator,
 """
 mutable struct Remote <: ServerExtension
     type::Vector{Symbol}
-    remotefunction::Function
+    remotefunction::Dict{Int64, Function}
     f::Function
-    logins::Dict{String, Hash}
-    users::Dict
+    logins::Dict{String, Vector{UInt8}}
+    users::Dict{Vector{UInt8}, Pair{String, Int64}}
+    access::Dict{String, Int64}
     motd::String
-    function Remote(remotefunction::Function = controller(),
-        usernames::Vector{String} = ["root"];
+    function Remote(
+        remotefunction::Dict{Int64, Function} = Dict{Int64, Function}(1 => controller()),
+        users::Vector{Pair{String, Pair{String, Int64}}} = ["root" => "1234" => 1];
         motd::String = """### login to toolips remote session""",
         serving_f::Function = serve_remote)
-        logins::Dict{String, Hash} = Dict([n => Hash() for n in usernames])
-        users::Dict = Dict()
-        f(r::Dict, e::Dict) = begin
+        logins::Dict{String, Vector{UInt8}} = Dict(
+        [n[1] => sha256(n[2][1]) for n in users])
+        access::Dict{String, Int64} = Dict([client[1] => client[2][2] for client in users])
+        users = Dict{Vector{UInt8}, Pair{String, Int64}}()
+        f(r::Vector{AbstractRoute}, e::Vector{ServerExtension}) = begin
             r["/remote/connect"] = serving_f
-            if has_extension(e, Logger)
-                e[:Logger].log(1, "ToolipsRemote is active !")
-                for user in logins
-                    login = user[1]
-                    pwrd = user[2].f()
-                    e[:Logger].log(2, "|Remote Key for $login: $pwrd")
-                end
-            end
         end
         new([:routing, :connection], remotefunction, f, logins, users,
-            motd)::Remote
+         access, motd)::Remote
     end
+end
+
+
+function set_pwd!(c::Connection, usrpwd::Pair{String, String})
+    c[:Remote].logins[usrpwd[1]] = sha256(usrpwd[2])
 end
 
 """
@@ -143,9 +92,10 @@ function serve_remote(c::Connection)
             key = message[keystart:length(message)]
             # cut out the session key if provided.
             message = message[1:keybeg[1][1] - 1]
-            print(message)
-        if key in [v.f() for v in keys(c[:Remote].users)]
-            c[:Remote].remotefunction(c, message)
+        if sha256(key) in keys(c[:Remote].users)
+            userinfo = c[:Remote].users[sha256(key)]
+            newc = RemoteConnection(c, userinfo, message)
+            c[:Remote].remotefunction[userinfo[2]](newc)
         else
             write!(c, "Key invalid.")
         end
@@ -155,13 +105,14 @@ function serve_remote(c::Connection)
         elseif contains(message, ":")
             usrpwd = split(message, ":")
             if string(usrpwd[1]) in keys(c[:Remote].logins)
-                if string(usrpwd[2]) == c[:Remote].logins[string(usrpwd[1])].f()
-                    newhash = Hash()
-                    c[:Remote].users[newhash] = string(usrpwd[1])
-                    name = string(usrpwd[1])
-                    key = newhash.f()
-                    write!(c, "$name:$key")
+                if sha256(usrpwd[2]) == c[:Remote].logins[string(usrpwd[1])]
+                    key = randstring(16)
+                    c[:Remote].users[sha256(key)] = usrpwd[1] => c[:Remote].access[string(usrpwd[1])]
+                    write!(c, "$(usrpwd[1]):$key")
                 else
+                    c[:Logger].log(string(usrpwd[2]))
+                    c[:Logger].log(string(sha256(usrpwd[2])))
+                    c[:Logger].log(string(c[:Remote].logins[string(usrpwd[1])]))
                     write!(c, "Your password was not found.")
                 end
             else
@@ -202,6 +153,51 @@ function connect(url::String)
     end
 end
 
+#==
+TODO Peer connect
+==#
+function peer_connect(url::String)
+
+end
+
+mutable struct RemoteConnection <: Toolips.AbstractConnection
+    routes::Vector{Toolips.AbstractRoute}
+    http::Any
+    extensions::Vector{Toolips.ServerExtension}
+    group::Int64
+    name::String
+    message::String
+    function RemoteConnection(c::Connection, userdata::Pair{String, Int64},
+        message::AbstractString = "")
+        new(c.routes, c.http, c.extensions, userdata[2], userdata[1],
+        string(message))::RemoteConnection
+    end
+end
+
+macro R_str(s)
+    s
+end
+
+function write!(c::RemoteConnection, s::Component{<:Any})
+    write!(c, s[:text])
+end
+
+function write!(c::RemoteConnection, s::Component{:div})
+    write!(c, "---" * R"\n")
+    [write!(c, child) for child in s[:children]]
+    write!(c, "---" * R"\n")
+end
+
+
+
+write!(c::RemoteConnection, s::Component{:h1}) = write!(c, "# $(s[:text])" * R"\n")
+write!(c::RemoteConnection, s::Component{:h2}) = write!(c, "## $(s[:text]))" * R"\n")
+write!(c::RemoteConnection, s::Component{:h3}) = write!(c, "### $(s[:text])" * R"\n")
+write!(c::RemoteConnection, s::Component{:h4}) = write!(c, "#### $(s[:text])" * R"\n")
+write!(c::RemoteConnection, s::Component{:b}) = write!(c, "**$(s[:text])**")
+write!(c::RemoteConnection, s::Component{:a}) = write!(c, "[$(s[:text])]($(s[:href]))")
+
+
 """
 **Remote**
 ### getindex(h::Hash) -> ::String
@@ -215,7 +211,7 @@ connectedrepl("myrepl", "http://127.0.0.1:8000", key::String)
 function connected_repl(name::AbstractString, url::String, key::String)
     send_up(s::String) = begin
         r = post("$url/remote/connect", s * ":SESSIONKEY:$key")
-        display(Markdown.parse(r))
+        display(Markdown.parse(replace(r, R"\n" => "\n")))
     end
     initrepl(send_up,
                     prompt_text="🔗 $name> ",
@@ -240,7 +236,8 @@ end
 
 function controller(commands::Dict{String, Function} = Dict("?" => helpme,
                     "logit" => logit))
-    f(c::Connection, m::String) = begin
+    f(c::RemoteConnection) = begin
+        m = c.message
         args = [string(arg) for arg in split(m, ";")]
         cmd = args[1]
         if length(args) != 1

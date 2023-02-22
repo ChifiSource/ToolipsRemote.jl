@@ -206,6 +206,7 @@ c[:Remote].remotefunction[userinfo[2]](newc)
 """
 mutable struct RemoteConnection <: Toolips.AbstractConnection
     routes::Vector{Toolips.AbstractRoute}
+    hostname::String
     http::Any
     extensions::Vector{Toolips.ServerExtension}
     group::Int64
@@ -213,7 +214,7 @@ mutable struct RemoteConnection <: Toolips.AbstractConnection
     message::String
     function RemoteConnection(c::Connection, userdata::Pair{String, Int64},
         message::AbstractString = "")
-        new(c.routes, c.http, c.extensions, userdata[2], userdata[1],
+        new(c.routes, c.hostname, c.http, c.extensions, userdata[2], userdata[1],
         string(message))::RemoteConnection
     end
 end
@@ -289,9 +290,9 @@ function controller(commands::Dict{String, Function} = Dict("?" => helpme,
         else
             args = Vector{String}()
         end
-        write!(c, commands[cmd](args, c))
+        commands[cmd](args, c)
     end
-    f
+    f::Function
 end
 
 """
@@ -314,9 +315,9 @@ function helpme(args::Vector{String}, c::RemoteConnection)
     """
     )
     if length(args) == 1
-        return(doc_lookup[args[1]])
+        write!(c, doc_lookup[args[1]])
     else
-        return("""### ?
+        write!(c, """### ?
         The ? command allows one to explore the various capabilities
         of the toolips session. Inside of this REPL, commands are issued with
         their arguments seperated by semi-colons. The ? application, as an
@@ -338,14 +339,14 @@ end
 function logit(args::Vector{String}, c::RemoteConnection)
     if length(args) == 1
         c[:Logger].log(string(args[1]))
-        return("Your message was written!")
+        write!(c, "Your message was written!")
     end
     if length(args) == 2
         level = parse(Int64, string(args[2]))
         c[:Logger].log(level, string(args[1]))
-        return("Your message was written!")
+        write!(c, "Your message was written!")
     else
-        return("### Not a correct number of arguments!")
+        write!(c, "### Not a correct number of arguments!")
     end
 end
 

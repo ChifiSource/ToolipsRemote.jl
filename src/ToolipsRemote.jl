@@ -131,9 +131,6 @@ function serve_remote(c::Connection)
                     c[:Remote].users[sha256(key)] = usrpwd[1]
                     write!(c, "$(usrpwd[1]):$key")
                 else
-                    c[:Logger].log(string(usrpwd[2]))
-                    c[:Logger].log(string(sha256(usrpwd[2])))
-                    c[:Logger].log(string(c[:Remote].logins[string(usrpwd[1])]))
                     write!(c, "Your password was not found.")
                 end
             else
@@ -283,7 +280,7 @@ function controller(commands::Dict{String, Function} = Dict("?" => helpme,
                     "logit" => logit))
     f(c::RemoteConnection) = begin
         m = c.message
-        args = [string(arg) for arg in split(m, ";")]
+        args = [string(arg) for arg in split(m, " ")]
         cmd = args[1]
         if length(args) != 1
             args = args[2:length(args)]
